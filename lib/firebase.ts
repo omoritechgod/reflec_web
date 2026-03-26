@@ -1,4 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 // Hardcoded Firebase config (recommended for production)
@@ -23,7 +24,9 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 // Initialize Functions
 const functions = getFunctions(app);
 
+const firestore = getFirestore(app)
 // Callable function to submit feedback
-export const submitAnonymousFeedback = httpsCallable(functions, 'submitAnonymousFeedback');
 
-export { app, functions };
+// export const submitAnonymousFeedback = httpsCallable(functions, 'submitAnonymousFeedback');
+
+export { app, functions, firestore};

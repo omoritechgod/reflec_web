@@ -42,6 +42,7 @@ export default function FeedbackPage({ params }: { params: { linkId: string } })
             </p>
           </div>
 
+        
           {/* Feedback Form */}
           <FeedbackForm linkId={params.linkId} />
         </div>

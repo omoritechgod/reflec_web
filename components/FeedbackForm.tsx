@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { submitAnonymousFeedback } from '@/lib/firebase'
+import { useEffect, useState } from 'react'
+import { getQuestion, submitAnonymousFeedback } from '@/lib/services'
+import { Loader2 } from 'lucide-react'
 
 interface FeedbackFormProps {
   linkId: string
@@ -9,14 +10,37 @@ interface FeedbackFormProps {
 
 export default function FeedbackForm({ linkId }: FeedbackFormProps) {
   const [content, setContent] = useState('')
+  const [data, setData] = useState<{ question: string, userId: string } | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
 
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    setIsLoading(true)
+    try {
+      const response = await getQuestion(linkId);
+
+      if (response?.success) {
+        setData(response.data)
+      }
+
+    } catch (error) {
+      console.log("error loading questions", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!content.trim()) {
+
+    if (!content.trim() || !data?.question?.trim()) {
       setError('Please enter your feedback')
       return
     }
@@ -30,17 +54,25 @@ export default function FeedbackForm({ linkId }: FeedbackFormProps) {
       setLoading(true)
       setError('')
 
-      const result = await submitAnonymousFeedback({
+      console.log("Sending payload:", {
         linkId,
         content: content.trim(),
+        question: data?.question
       })
 
-      console.log('Feedback submitted:', result.data)
+      const result = await submitAnonymousFeedback(
+        linkId,
+        content.trim(),
+        data.question,
+        data.userId
+      )
+
+      console.log('Feedback submitted:', result)
       setSubmitted(true)
       setContent('')
     } catch (err: any) {
       console.error('Submit error:', err)
-      
+
       if (err.code === 'functions/not-found') {
         setError('This feedback link is invalid or has expired.')
       } else if (err.code === 'functions/failed-precondition') {
@@ -53,6 +85,14 @@ export default function FeedbackForm({ linkId }: FeedbackFormProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className='fixed w-full h-full backdrop-blur left-0 bottom-0 bg-white/20 flex items-center justify-center'>
+        <Loader2 className='w-16 h-16 animate-spin text-white' />
+      </div>
+    )
   }
 
   if (submitted) {
@@ -79,8 +119,9 @@ export default function FeedbackForm({ linkId }: FeedbackFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <h1 className='text-lg md:text-xl text-gray-900 font-semibold'>{data?.question || "Question Loading...."}{data?.question && "?"}</h1>
       <div>
-        <label htmlFor="feedback" className="block text-lg font-semibold text-gray-900 mb-2">
+        <label htmlFor="feedback" className="block  font-semibold text-gray-900 mb-2">
           Your Feedback
         </label>
         <textarea
